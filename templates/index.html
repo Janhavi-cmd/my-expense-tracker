@@ -3,190 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Expense Tracker</title>
+    <title>Expense Tracker - Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="flash-messages">
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
-                        <span>{{ message }}</span>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-
-    <div class="dashboard-container">
-        <!-- Header -->
-        <header class="dashboard-header">
-            <div class="dashboard-title">
-                <span class="logo">💰</span>
-                <h1>Expense Tracker</h1>
-            </div>
-            <div class="header-actions">
-                <button id="themeToggle" class="theme-toggle">🌙</button>
-                <a href="/logout" class="logout-btn">Logout</a>
+    <div class="container">
+        <header>
+            <h1>💰 Expense Tracker Dashboard</h1>
+            <div class="user-info">
+                <span>Welcome, {{ session.email }}</span>
+                <a href="/logout" class="btn btn-logout">Logout</a>
             </div>
         </header>
 
-        <!-- Total Card -->
-        <div class="total-card">
-            <h3>Total Active Expenses</h3>
-            <div class="amount">₹{{ "%.2f"|format(total) }}</div>
-        </div>
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
         <!-- Add Expense Form -->
-        <div class="add-expense-card">
-            <h3>➕ Add New Expense</h3>
+        <section class="add-expense">
+            <h2>Add New Expense</h2>
             <form method="POST" action="/">
-                <div class="form-grid">
+                <div class="form-row">
                     <div class="form-group">
-                        <label for="amount">Amount</label>
-                        <input 
-                            type="number" 
-                            id="amount" 
-                            name="amount" 
-                            step="0.01" 
-                            min="0" 
-                            class="form-input" 
-                            placeholder="0.00" 
-                            required
-                        >
+                        <label for="amount">Amount (Rs.)</label>
+                        <input type="number" step="0.01" name="amount" id="amount" required>
                     </div>
                     
                     <div class="form-group">
                         <label for="category">Category</label>
-                        <select id="category" name="category" class="form-input" required>
-                            <option value="Food">Food</option>
-                            <option value="Travel">Travel</option>
-                            <option value="Study">Study</option>
-                            <option value="Entertainment">Entertainment</option>
-                            <option value="Lent">Lent</option>
-                            <option value="Other">Other</option>
+                        <select name="category" id="category" required>
+                            <option value="">Select Category</option>
+                            <option value="Food">🍔 Food</option>
+                            <option value="Transport">🚗 Transport</option>
+                            <option value="Shopping">🛍️ Shopping</option>
+                            <option value="Bills">💡 Bills</option>
+                            <option value="Entertainment">🎬 Entertainment</option>
+                            <option value="Health">🏥 Health</option>
+                            <option value="Education">📚 Education</option>
+                            <option value="Lent">💸 Lent</option>
+                            <option value="Other">📝 Other</option>
                         </select>
                     </div>
                     
                     <div class="form-group">
                         <label for="date">Date</label>
-                        <input 
-                            type="date" 
-                            id="date" 
-                            name="date" 
-                            class="form-input" 
-                            required
-                        >
+                        <input type="date" name="date" id="date" required value="{{ today }}">
                     </div>
                 </div>
                 
                 <div class="form-group">
                     <label for="note">Note (Optional)</label>
-                    <input 
-                        type="text" 
-                        id="note" 
-                        name="note" 
-                        class="form-input" 
-                        placeholder="e.g., Lunch with friends" 
-                        maxlength="200"
-                    >
+                    <input type="text" name="note" id="note" placeholder="Add a note...">
                 </div>
                 
-                <button type="submit" class="btn btn-success">
-                    Add Expense
-                </button>
+                <button type="submit" class="btn btn-primary">Add Expense</button>
             </form>
-        </div>
+        </section>
 
-        <!-- Monthly Filter -->
-        <form method="GET" action="/" class="filter-section">
-            <input 
-                type="month" 
-                name="month" 
-                class="form-input" 
-                value="{{ selected_month or '' }}"
-                placeholder="Filter by month"
-            >
-            <button type="submit" class="btn btn-primary">Filter</button>
-            {% if selected_month %}
-                <a href="/" class="btn btn-secondary">Clear</a>
-            {% endif %}
-        </form>
+        <!-- Filter Section -->
+        <section class="filter-section">
+            <h2>Filter Expenses</h2>
+            <form method="GET" action="/">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="month">Filter by Month</label>
+                        <input type="month" name="month" id="month" value="{{ selected_month or '' }}">
+                    </div>
+                    <button type="submit" class="btn btn-secondary">Apply Filter</button>
+                    <a href="/" class="btn btn-secondary">Clear Filter</a>
+                </div>
+            </form>
+        </section>
 
-        <!-- Expenses List -->
-        <div class="expenses-section">
-            <h3>📊 Your Expenses</h3>
+        <!-- Summary Section -->
+        <section class="summary">
+            <div class="summary-card">
+                <h3>Total Expenses</h3>
+                <p class="amount">Rs. {{ "%.2f"|format(total) }}</p>
+            </div>
+            <div class="summary-card">
+                <h3>Number of Expenses</h3>
+                <p class="count">{{ expenses|length }}</p>
+            </div>
+        </section>
+
+        <!-- Actions -->
+        <section class="actions">
+            <a href="/pdf" class="btn btn-success">📄 Download PDF Report</a>
+        </section>
+
+        <!-- Expenses Table -->
+        <section class="expenses-table">
+            <h2>Your Expenses</h2>
             
             {% if expenses %}
-                <div class="expenses-grid">
-                    {% for expense in expenses %}
-                        <div class="expense-card">
-                            <div class="expense-header">
-                                <span class="expense-category category-{{ expense.category.lower() }}">
-                                    {{ expense.category }}
-                                </span>
-                                <span class="expense-amount">₹{{ "%.2f"|format(expense.amount) }}</span>
-                            </div>
-                            
-                            {% if expense.note %}
-                                <p class="expense-note">{{ expense.note }}</p>
-                            {% endif %}
-                            
-                            <p class="expense-date">📅 {{ expense.date.strftime('%d %B %Y') }}</p>
-                            
-                            <div class="expense-actions">
-                                <a href="/edit/{{ expense.id }}" class="btn btn-secondary">
-                                    ✏️ Edit
-                                </a>
-                                
-                                {% if expense.category == "Lent" %}
-                                    <form method="POST" action="/settle/{{ expense.id }}" style="display: inline;">
-                                        <button type="submit" class="btn btn-warning">
-                                            ✅ Settle
-                                        </button>
-                                    </form>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Note</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr class="{{ 'settled' if expense.status == 'settled' else '' }}">
+                            <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ expense.category }}</td>
+                            <td class="amount">Rs. {{ "%.2f"|format(expense.amount) }}</td>
+                            <td>{{ expense.note or '-' }}</td>
+                            <td>
+                                {% if expense.status == 'settled' %}
+                                    <span class="badge badge-success">✓ Settled</span>
                                 {% else %}
-                                    <form method="POST" action="/delete/{{ expense.id }}" style="display: inline;">
-                                        <button type="submit" class="btn btn-danger">
-                                            🗑️ Delete
-                                        </button>
+                                    <span class="badge badge-active">Active</span>
+                                {% endif %}
+                            </td>
+                            <td class="action-buttons">
+                                {% if expense.status != 'settled' %}
+                                    <a href="/edit/{{ expense.id }}" class="btn btn-sm btn-edit">Edit</a>
+                                    
+                                    {% if expense.category == 'Lent' %}
+                                        <form method="POST" action="/settle/{{ expense.id }}" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-settle">Settle</button>
+                                        </form>
+                                    {% endif %}
+                                    
+                                    <form method="POST" action="/delete/{{ expense.id }}" style="display:inline;" 
+                                          onsubmit="return confirm('Are you sure you want to delete this expense?');">
+                                        <button type="submit" class="btn btn-sm btn-delete">Delete</button>
                                     </form>
                                 {% endif %}
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             {% else %}
-                <div class="empty-state">
-                    <div class="empty-state-icon">📭</div>
-                    <h3>No expenses found</h3>
-                    <p>Start by adding your first expense above</p>
+                <div class="no-expenses">
+                    <p>📭 No expenses found.</p>
+                    <p>Start by adding your first expense above!</p>
                 </div>
             {% endif %}
-        </div>
-
-        <!-- PDF Download -->
-        {% if expenses %}
-            <div class="pdf-download">
-                <a href="/pdf">
-                    📄 Download PDF Report
-                </a>
-            </div>
-        {% endif %}
-
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="footer-content">
-                <div class="footer-text" class>
-                    Crafted by <span class="footer-name">Kirtan Jogani</span>
-                </div>
-                
-                
-            </div>
-        </footer>
+        </section>
     </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Set today's date as default
+        document.getElementById('date').valueAsDate = new Date();
+    </script>
 </body>
 </html>
