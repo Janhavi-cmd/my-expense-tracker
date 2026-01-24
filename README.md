@@ -1,118 +1,216 @@
-# Expense Tracker
+# 💰 Expense Tracker
 
-A clean, full-stack web application for tracking personal expenses with multi-user support and PDF reporting.
+A full-stack web application for tracking personal expenses with a beautiful modern UI. Built with Flask (Python) and deployed on Render.
 
-## What it does
+## 🌐 Live Demo
 
-Track your daily expenses across different categories, filter by month, and generate PDF reports. Built this to learn full-stack development and understand how authentication works in Flask.
+**[View Live Application](https://my-expense-tracker-7zb4.onrender.com)**
 
-The app includes a "Lent" category for money you've lent to others. When they pay you back, you can mark it as settled without deleting the record.
+> **Note:** First load may take 30-50 seconds as the server wakes up (free tier hosting). Subsequent loads are instant.
 
-## Tech Stack
+## ✨ Features
 
-**Backend:**
-- Flask (Python web framework)
-- SQLAlchemy (ORM)
-- SQLite (database)
-- Werkzeug (password hashing)
+- 🔐 **User Authentication** - Secure login and registration
+- 💵 **Expense Management** - Add, edit, delete expenses
+- 📊 **Categories** - Food, Transport, Shopping, Bills, Entertainment, Health, Education, Lent, Other
+- 📅 **Filter by Month** - View expenses for specific time periods
+- 💸 **Lent Money Tracking** - Track money lent and mark as settled
+- 📄 **PDF Reports** - Download expense reports as PDF
+- 🔒 **Admin Panel** - View all users and expenses (admin only)
+- 📱 **Responsive Design** - Works on mobile and desktop
+- 🎨 **Modern UI** - Beautiful gradient design with smooth animations
 
-**Frontend:**
-- Vanilla JavaScript
-- CSS3 (no frameworks)
-- Responsive design
+## 🛠️ Tech Stack
 
-**Other:**
-- FPDF for PDF generation
-- Gunicorn for deployment
+### Backend
+- **Python 3.12**
+- **Flask** - Web framework
+- **SQLAlchemy** - ORM for database operations
+- **SQLite** - Database
+- **Werkzeug** - Password hashing
+- **FPDF** - PDF generation
 
-## Features
+### Frontend
+- **HTML5**
+- **CSS3** - Modern gradients and animations
+- **JavaScript** - Interactive features
+- **Jinja2** - Template engine
 
-- User authentication (register/login/logout)
-- Add, edit, delete expenses
-- 6 categories: Food, Travel, Study, Entertainment, Lent, Other
-- Monthly expense filtering
-- Dark/light theme toggle
-- PDF report generation
-- Mobile responsive
-- Multi-user support with data isolation
+### Deployment
+- **Render** - Cloud hosting
+- **Gunicorn** - Production WSGI server
 
-## Local Setup
+## 📦 Installation
 
+### Prerequisites
+- Python 3.12 or higher
+- pip
+- Git
+
+### Local Setup
+
+1. **Clone the repository**
 ```bash
-# Clone the repo
-git clone https://github.com/yourusername/expense-tracker.git
-cd expense-tracker
+git clone https://github.com/Janhavi-cmd/my-expense-tracker.git
+cd my-expense-tracker
+```
 
-# Create virtual environment
+2. **Create virtual environment**
+```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+```
+
+3. **Install dependencies**
+```bash
 pip install -r requirements.txt
+```
 
-# Run the app
+4. **Set environment variables** (optional)
+```bash
+# Windows PowerShell:
+$env:SECRET_KEY="your-secret-key"
+$env:ADMIN_EMAIL="admin@example.com"
+$env:ADMIN_PASSWORD="admin123"
+
+# macOS/Linux:
+export SECRET_KEY="your-secret-key"
+export ADMIN_EMAIL="admin@example.com"
+export ADMIN_PASSWORD="admin123"
+```
+
+5. **Run the application**
+```bash
 python app.py
 ```
 
-Open http://localhost:5000
-
-## Project Structure
-
+6. **Open in browser**
 ```
-expense-tracker/
-├── app.py              # Main Flask application
-├── models.py           # Database models
-├── requirements.txt    # Python dependencies
-├── static/
-│   ├── style.css      # All styles (dark/light themes)
-│   └── script.js      # Frontend interactions
-└── templates/
-    ├── login.html
-    ├── register.html
-    ├── index.html     # Main dashboard
-    └── edit_expense.html
+http://localhost:5000
 ```
 
-## Usage
+## 🎯 Usage
 
-1. Register an account
-2. Add expenses with amount, category, date, and optional notes
-3. View total active expenses
-4. Filter expenses by month
-5. Edit or delete expenses as needed
-6. For money lent to friends, use "Lent" category and click "Settle" when paid back
-7. Download PDF reports anytime
+### User Registration & Login
+1. Navigate to the application
+2. Click "Create Account"
+3. Enter email and password (minimum 6 characters)
+4. Login with your credentials
 
-## Known Issues
+### Adding Expenses
+1. After login, you'll see the dashboard
+2. Fill in the "Add New Expense" form:
+   - Amount (in Rupees)
+   - Category (select from dropdown)
+   - Date
+   - Note (optional)
+3. Click "Add Expense"
 
-- Database resets on Render free tier after ~15 min inactivity
-- PDF generation only supports ASCII characters (no emojis in notes)
+### Managing Expenses
+- **Edit**: Click the "Edit" button on any expense
+- **Delete**: Click the "Delete" button (requires confirmation)
+- **Settle Lent Money**: If category is "Lent", click "Settle" when paid back
 
-## Future Improvements
+### Filtering
+- Use the month filter to view expenses for a specific month
+- Click "Clear Filter" to view all expenses
 
-- [ ] Add expense categories customization
-- [ ] Chart/graph visualization
-- [ ] Export to CSV
-- [ ] Recurring expenses
-- [ ] Budget limits and alerts
-- [ ] Split expenses between users
+### PDF Reports
+- Click "Download PDF Report" to generate and download a PDF of all active expenses
 
-##  Live Demo
+### Admin Access
+- Login with admin credentials (set via environment variables)
+- View all registered users and their expenses
+- Read-only access for monitoring
 
-[https://expense-tracker-sxf5.onrender.com]
+## 📁 Project Structure
 
-## Admin Access (for portfolio review)
+```
+my-expense-tracker/
+├── app.py                 # Main application file with routes
+├── models.py              # Database models (User, Expense)
+├── requirements.txt       # Python dependencies
+├── templates/             # HTML templates
+│   ├── index.html        # User dashboard
+│   ├── login.html        # Login page
+│   ├── register.html     # Registration page
+│   ├── edit_expense.html # Edit expense form
+│   └── admin_simple.html # Admin panel
+├── static/                # Static files (CSS, JS)
+│   ├── style.css
+│   └── script.js
+└── instance/              # Database files
+    └── expenses.db       # SQLite database
+```
 
-Demo admin credentials available on request.
+## 🔑 Environment Variables
 
-## License
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SECRET_KEY` | Flask secret key for sessions | `dev-secret-key-change-this` |
+| `DATABASE_URL` | Database connection string | `sqlite:///expenses.db` |
+| `ADMIN_EMAIL` | Admin login email | `admin@expensetracker.com` |
+| `ADMIN_PASSWORD` | Admin login password | `admin123` |
 
-MIT License - feel free to use this for learning or your own projects.
+## 🚀 Deployment
 
-## Contact
+This application is deployed on [Render](https://render.com). To deploy your own:
 
-Questions? Open an issue or reach out on [www.linkedin.com/in/kirtan-jogani-b55414315].
+1. Fork this repository
+2. Sign up on Render
+3. Create a new Web Service
+4. Connect your GitHub repository
+5. Configure:
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn app:app`
+   - **Environment Variables**: Add SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD
+
+## 📸 Screenshots
+
+### Login Page
+Beautiful gradient login screen with form validation.
+
+### Dashboard
+Modern expense tracker with add, edit, delete functionality.
+
+### Admin Panel
+Monitor all users and expenses with database overview.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - feel free to use this for learning or your own projects.
+
+## 👨‍💻 Developer
+
+**Janhavi Chaturvedi**
+- GitHub: [@Janhavi-cmd](https://github.com/Janhavi-cmd)
+- Email: janhaivichaturvedi0511@gmail.com
+
+## 🙏 Acknowledgments
+
+- Built while learning Flask and full-stack web development
+- Inspired by personal finance tracking needs
+- Thanks to the Flask and Python communities
+
+## 📞 Contact
+
+For questions, suggestions, or issues, please open an issue on GitHub or reach out via email.
 
 ---
 
-Built this while learning Flask and web development. Code suggestions welcome.
+**⭐ If you found this project helpful, please give it a star!**
