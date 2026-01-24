@@ -3,18 +3,399 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Tracker - Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Expense Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            font-size: 40px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .profile-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            font-size: 24px;
+            transition: all 0.3s;
+        }
+
+        .profile-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .logout-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Total Card */
+        .total-card {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 24px;
+            padding: 60px;
+            text-align: center;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.3);
+        }
+
+        .total-label {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .total-amount {
+            font-size: 64px;
+            font-weight: 800;
+            letter-spacing: -2px;
+        }
+
+        /* Add Expense Form */
+        .add-expense-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            opacity: 0.8;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .add-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            padding: 16px 40px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 30px 40px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .filter-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border: none;
+            padding: 14px 30px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Expenses List */
+        .expenses-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .expense-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+
+        .expense-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .expense-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .category-badge {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .expense-amount {
+            font-size: 32px;
+            font-weight: 800;
+        }
+
+        .expense-details {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .expense-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .edit-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .edit-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .delete-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .delete-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .settle-btn {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1;
+        }
+
+        .pdf-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border: none;
+            padding: 16px 40px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+            margin-top: 30px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .pdf-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .no-expenses {
+            text-align: center;
+            padding: 60px 20px;
+            opacity: 0.6;
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .total-amount {
+                font-size: 48px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>💰 Expense Tracker Dashboard</h1>
-            <div class="user-info">
-                <span>Welcome, {{ session.email }}</span>
-                <a href="/logout" class="btn btn-logout">Logout</a>
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <span class="logo-icon">💰</span>
+                <span>Expense Tracker</span>
             </div>
-        </header>
+            <div class="header-right">
+                <button class="profile-btn">👤</button>
+                <a href="/logout" style="text-decoration: none;">
+                    <button class="logout-btn">Logout</button>
+                </a>
+            </div>
+        </div>
 
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -27,142 +408,129 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Add Expense Form -->
-        <section class="add-expense">
-            <h2>Add New Expense</h2>
+        <!-- Total Active Expenses -->
+        <div class="total-card">
+            <div class="total-label">TOTAL ACTIVE EXPENSES</div>
+            <div class="total-amount">₹{{ "%.2f"|format(total) }}</div>
+        </div>
+
+        <!-- Add New Expense -->
+        <div class="add-expense-section">
+            <div class="section-title">
+                <span>✨</span> Add New Expense
+            </div>
             <form method="POST" action="/">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="amount">Amount (Rs.)</label>
-                        <input type="number" step="0.01" name="amount" id="amount" required>
+                        <label>Amount</label>
+                        <input type="number" step="0.01" name="amount" placeholder="0.00" required>
                     </div>
-                    
                     <div class="form-group">
-                        <label for="category">Category</label>
-                        <select name="category" id="category" required>
-                            <option value="">Select Category</option>
-                            <option value="Food">🍔 Food</option>
-                            <option value="Transport">🚗 Transport</option>
-                            <option value="Shopping">🛍️ Shopping</option>
-                            <option value="Bills">💡 Bills</option>
-                            <option value="Entertainment">🎬 Entertainment</option>
-                            <option value="Health">🏥 Health</option>
-                            <option value="Education">📚 Education</option>
-                            <option value="Lent">💸 Lent</option>
-                            <option value="Other">📝 Other</option>
+                        <label>Category</label>
+                        <select name="category" required>
+                            <option value="Food">Food</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Shopping">Shopping</option>
+                            <option value="Bills">Bills</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Health">Health</option>
+                            <option value="Education">Education</option>
+                            <option value="Lent">Lent</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
-                    
                     <div class="form-group">
-                        <label for="date">Date</label>
-                        <input type="date" name="date" id="date" required value="{{ today }}">
+                        <label>Date</label>
+                        <input type="date" name="date" required>
                     </div>
                 </div>
-                
                 <div class="form-group">
-                    <label for="note">Note (Optional)</label>
-                    <input type="text" name="note" id="note" placeholder="Add a note...">
+                    <label>Note (Optional)</label>
+                    <input type="text" name="note" placeholder="e.g. Lunch with friends">
                 </div>
-                
-                <button type="submit" class="btn btn-primary">Add Expense</button>
+                <button type="submit" class="add-btn">Add Expense</button>
             </form>
-        </section>
+        </div>
 
-        <!-- Filter Section -->
-        <section class="filter-section">
-            <h2>Filter Expenses</h2>
+        <!-- Filter -->
+        <div class="filter-section">
             <form method="GET" action="/">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="month">Filter by Month</label>
-                        <input type="month" name="month" id="month" value="{{ selected_month or '' }}">
+                <div class="filter-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Filter by Month</label>
+                        <input type="month" name="month" value="{{ selected_month or '' }}">
                     </div>
-                    <button type="submit" class="btn btn-secondary">Apply Filter</button>
-                    <a href="/" class="btn btn-secondary">Clear Filter</a>
+                    <button type="submit" class="filter-btn">Filter</button>
+                    <a href="/" style="text-decoration: none;">
+                        <button type="button" class="filter-btn" style="background: rgba(255,255,255,0.1);">Clear</button>
+                    </a>
                 </div>
             </form>
-        </section>
+        </div>
 
-        <!-- Summary Section -->
-        <section class="summary">
-            <div class="summary-card">
-                <h3>Total Expenses</h3>
-                <p class="amount">Rs. {{ "%.2f"|format(total) }}</p>
+        <!-- Expenses List -->
+        <div class="expenses-section">
+            <div class="section-title">
+                <span>📊</span> Your Expenses
             </div>
-            <div class="summary-card">
-                <h3>Number of Expenses</h3>
-                <p class="count">{{ expenses|length }}</p>
-            </div>
-        </section>
 
-        <!-- Actions -->
-        <section class="actions">
-            <a href="/pdf" class="btn btn-success">📄 Download PDF Report</a>
-        </section>
-
-        <!-- Expenses Table -->
-        <section class="expenses-table">
-            <h2>Your Expenses</h2>
-            
             {% if expenses %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Category</th>
-                            <th>Amount</th>
-                            <th>Note</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for expense in expenses %}
-                        <tr class="{{ 'settled' if expense.status == 'settled' else '' }}">
-                            <td>{{ expense.date.strftime('%Y-%m-%d') }}</td>
-                            <td>{{ expense.category }}</td>
-                            <td class="amount">Rs. {{ "%.2f"|format(expense.amount) }}</td>
-                            <td>{{ expense.note or '-' }}</td>
-                            <td>
-                                {% if expense.status == 'settled' %}
-                                    <span class="badge badge-success">✓ Settled</span>
-                                {% else %}
-                                    <span class="badge badge-active">Active</span>
-                                {% endif %}
-                            </td>
-                            <td class="action-buttons">
-                                {% if expense.status != 'settled' %}
-                                    <a href="/edit/{{ expense.id }}" class="btn btn-sm btn-edit">Edit</a>
-                                    
-                                    {% if expense.category == 'Lent' %}
-                                        <form method="POST" action="/settle/{{ expense.id }}" style="display:inline;">
-                                            <button type="submit" class="btn btn-sm btn-settle">Settle</button>
-                                        </form>
-                                    {% endif %}
-                                    
-                                    <form method="POST" action="/delete/{{ expense.id }}" style="display:inline;" 
-                                          onsubmit="return confirm('Are you sure you want to delete this expense?');">
-                                        <button type="submit" class="btn btn-sm btn-delete">Delete</button>
-                                    </form>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% for expense in expenses %}
+                <div class="expense-card">
+                    <div class="expense-header">
+                        <span class="category-badge">{{ expense.category }}</span>
+                        <span class="expense-amount">₹{{ "%.2f"|format(expense.amount) }}</span>
+                    </div>
+                    <div class="expense-details">
+                        <div>{{ expense.note or 'No note' }}</div>
+                        <div>📅 {{ expense.date.strftime('%d %B %Y') }}</div>
+                    </div>
+                    <div class="expense-actions">
+                        {% if expense.status != 'settled' %}
+                            <a href="/edit/{{ expense.id }}" style="text-decoration: none; flex: 1;">
+                                <button class="edit-btn" style="width: 100%;">✏️ Edit</button>
+                            </a>
+                            {% if expense.category == 'Lent' %}
+                                <form method="POST" action="/settle/{{ expense.id }}" style="flex: 1;">
+                                    <button type="submit" class="settle-btn" style="width: 100%;">💵 Settle</button>
+                                </form>
+                            {% endif %}
+                            <form method="POST" action="/delete/{{ expense.id }}" 
+                                  onsubmit="return confirm('Are you sure?')" style="flex: 1;">
+                                <button type="submit" class="delete-btn" style="width: 100%;">🗑️ Delete</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                <a href="/pdf" style="text-decoration: none;">
+                    <button class="pdf-btn">
+                        <span>📄</span> Download PDF Report
+                    </button>
+                </a>
             {% else %}
                 <div class="no-expenses">
-                    <p>📭 No expenses found.</p>
-                    <p>Start by adding your first expense above!</p>
+                    <p style="font-size: 48px; margin-bottom: 20px;">📭</p>
+                    <p style="font-size: 20px;">No expenses found.</p>
+                    <p style="opacity: 0.7; margin-top: 10px;">Start by adding your first expense above!</p>
                 </div>
             {% endif %}
-        </section>
+        </div>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
         // Set today's date as default
-        document.getElementById('date').valueAsDate = new Date();
+        document.querySelector('input[type="date"]').valueAsDate = new Date();
+
+        // Auto-hide alerts after 3 seconds
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                alert.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => alert.remove(), 300);
+            });
+        }, 3000);
     </script>
 </body>
 </html>
