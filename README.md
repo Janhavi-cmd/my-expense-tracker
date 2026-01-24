@@ -199,7 +199,7 @@ This project is licensed under the MIT License - feel free to use this for learn
 
 **Janhavi Chaturvedi**
 - GitHub: [@Janhavi-cmd](https://github.com/Janhavi-cmd)
-- Email: janhaivichaturvedi0511@gmail.com
+- Email: janhavichaturvedi0511@gmail.com
 
 ## 🙏 Acknowledgments
 
