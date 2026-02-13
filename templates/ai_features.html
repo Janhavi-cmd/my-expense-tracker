@@ -310,14 +310,14 @@
         </a>
         <div class="ai-badge">
             <span class="dot"></span>
-            Claude AI Powered
+            Groq AI Powered
         </div>
     </div>
 
     <!-- hero -->
     <div class="hero">
         <h1>Your <span>AI Finance</span><br>Intelligence</h1>
-        <p>Claude analyses your real spending data to surface patterns and suggest smarter budgets — personalised to you.</p>
+        <p>AI analyses your real spending data to surface patterns and suggest smarter budgets — personalised to you.</p>
     </div>
 
     <!-- tabs -->
@@ -389,7 +389,23 @@
 
     <div class="budget-cards">
         {% for cat in budgets.categories %}
-        {% set pct = [(cat.suggested / cat.current_avg * 100) if cat.current_avg > 0 else 100, 100] | min %}
+        {% if cat.current_avg > 0 %}
+            {% set raw_pct = (cat.suggested / cat.current_avg * 100) %}
+        {% else %}
+            {% set raw_pct = 100 %}
+        {% endif %}
+        {% if raw_pct > 100 %}
+            {% set pct = 100 %}
+        {% else %}
+            {% set pct = raw_pct | int %}
+        {% endif %}
+        {% if cat.change == 'decrease' %}
+            {% set bar_color = 'linear-gradient(90deg,#10b981,#34d399)' %}
+        {% elif cat.change == 'increase' %}
+            {% set bar_color = 'linear-gradient(90deg,#f59e0b,#fbbf24)' %}
+        {% else %}
+            {% set bar_color = 'linear-gradient(90deg,#7c3aed,#a78bfa)' %}
+        {% endif %}
         <div class="budget-card">
             <div class="budget-card-top">
                 <span class="budget-cat-name">{{ cat.name }}</span>
@@ -405,10 +421,7 @@
                 <span class="budget-vs">was ₹{{ "{:,.0f}".format(cat.current_avg) }}/mo</span>
             </div>
             <div class="budget-bar-wrap">
-                <div class="budget-bar" style="
-                    width: {{ pct }}%;
-                    background: {% if cat.change == 'decrease' %}linear-gradient(90deg,#10b981,#34d399){% elif cat.change == 'increase' %}linear-gradient(90deg,#f59e0b,#fbbf24){% else %}linear-gradient(90deg,#7c3aed,#a78bfa){% endif %};
-                "></div>
+                <div class="budget-bar" style="width: {{ pct }}%; background: {{ bar_color }};"></div>
             </div>
             <div class="budget-reason">{{ cat.reason }}</div>
         </div>
