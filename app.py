@@ -297,43 +297,45 @@ def admin_panel():
 
 # ============================================================
 # AI FEATURES - Spending Insights & Budget Recommendations
-# Powered by Groq (Free tier - llama-3.3-70b-versatile)
-# Get your free key at: https://console.groq.com
+# Powered by Google Gemini (Free tier - gemini-1.5-flash)
+# Get your free key at: https://aistudio.google.com/app/apikey
 # ============================================================
 
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
-def call_groq(prompt, system_prompt, max_tokens=1024):
-    """Call Groq API via urllib (no extra deps needed). Free tier available."""
-    api_key = os.environ.get("GROQ_API_KEY", "")
+def call_gemini(prompt, system_prompt, max_tokens=1024):
+    """Call Gemini API via urllib (no extra deps needed). Free tier available."""
+    api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
-        return None, "GROQ_API_KEY environment variable not set. Get a free key at console.groq.com"
+        return None, "GEMINI_API_KEY environment variable not set. Get a free key at aistudio.google.com"
 
     payload = json.dumps({
-        "model": "llama-3.3-70b-versatile",
-        "max_tokens": max_tokens,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": prompt}
-        ]
+        "system_instruction": {
+            "parts": [{"text": system_prompt}]
+        },
+        "contents": [
+            {"parts": [{"text": prompt}]}
+        ],
+        "generationConfig": {
+            "maxOutputTokens": max_tokens,
+            "temperature": 0.7
+        }
     }).encode("utf-8")
 
+    url = f"{GEMINI_API_URL}?key={api_key}"
     req = urllib.request.Request(
-        GROQ_API_URL,
+        url,
         data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}"
-        },
+        headers={"Content-Type": "application/json"},
         method="POST"
     )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            return data["choices"][0]["message"]["content"], None
+            return data["candidates"][0]["content"]["parts"][0]["text"], None
     except urllib.error.HTTPError as e:
         body = e.read().decode()
-        return None, f"Groq API error {e.code}: {body}"
+        return None, f"Gemini API error {e.code}: {body}"
     except Exception as e:
         return None, str(e)
 
@@ -404,7 +406,7 @@ def ai_insights():
         "Please analyse my spending and provide personalized insights."
     )
 
-    result, error = call_groq(user_prompt, system_prompt, max_tokens=900)
+    result, error = call_gemini(user_prompt, system_prompt, max_tokens=900)
 
     if error:
         return render_template('ai_features.html',
@@ -473,7 +475,7 @@ def ai_budgets():
         "Return ONLY valid JSON as specified."
     )
 
-    result, error = call_groq(user_prompt, system_prompt, max_tokens=900)
+    result, error = call_gemini(user_prompt, system_prompt, max_tokens=900)
 
     if error:
         return render_template('ai_features.html',
