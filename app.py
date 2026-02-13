@@ -297,40 +297,43 @@ def admin_panel():
 
 # ============================================================
 # AI FEATURES - Spending Insights & Budget Recommendations
+# Powered by Groq (Free tier - llama-3.3-70b-versatile)
+# Get your free key at: https://console.groq.com
 # ============================================================
 
-ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-def call_claude(prompt, system_prompt, max_tokens=1024):
-    """Call Claude API via urllib (no extra deps needed)."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+def call_groq(prompt, system_prompt, max_tokens=1024):
+    """Call Groq API via urllib (no extra deps needed). Free tier available."""
+    api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
-        return None, "ANTHROPIC_API_KEY environment variable not set."
+        return None, "GROQ_API_KEY environment variable not set. Get a free key at console.groq.com"
 
     payload = json.dumps({
-        "model": "claude-sonnet-4-5-20250929",
+        "model": "llama-3.3-70b-versatile",
         "max_tokens": max_tokens,
-        "system": system_prompt,
-        "messages": [{"role": "user", "content": prompt}]
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user",   "content": prompt}
+        ]
     }).encode("utf-8")
 
     req = urllib.request.Request(
-        ANTHROPIC_API_URL,
+        GROQ_API_URL,
         data=payload,
         headers={
             "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01"
+            "Authorization": f"Bearer {api_key}"
         },
         method="POST"
     )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            return data["content"][0]["text"], None
+            return data["choices"][0]["message"]["content"], None
     except urllib.error.HTTPError as e:
         body = e.read().decode()
-        return None, f"API error {e.code}: {body}"
+        return None, f"Groq API error {e.code}: {body}"
     except Exception as e:
         return None, str(e)
 
@@ -401,7 +404,7 @@ def ai_insights():
         "Please analyse my spending and provide personalized insights."
     )
 
-    result, error = call_claude(user_prompt, system_prompt, max_tokens=900)
+    result, error = call_groq(user_prompt, system_prompt, max_tokens=900)
 
     if error:
         return render_template('ai_features.html',
@@ -470,7 +473,7 @@ def ai_budgets():
         "Return ONLY valid JSON as specified."
     )
 
-    result, error = call_claude(user_prompt, system_prompt, max_tokens=900)
+    result, error = call_groq(user_prompt, system_prompt, max_tokens=900)
 
     if error:
         return render_template('ai_features.html',
