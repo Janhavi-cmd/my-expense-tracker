@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Features — Expense Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep:     #080b14;
+            --bg-card:     #0e1525;
+            --bg-glass:    rgba(255,255,255,0.04);
+            --border:      rgba(255,255,255,0.08);
+            --accent-ai:   #7c3aed;
+            --accent-glow: rgba(124, 58, 237, 0.35);
+            --accent-gold: #f59e0b;
+            --accent-green:#10b981;
+            --accent-red:  #ef4444;
+            --text-1:      #f1f5f9;
+            --text-2:      #94a3b8;
+            --text-3:      #64748b;
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-1);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── noise grain overlay ── */
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            opacity: .35;
+        }
+
+        /* ── ambient glow blobs ── */
+        .glow-blob {
+            position: fixed; border-radius: 50%;
+            filter: blur(90px); pointer-events: none; z-index: 0;
+        }
+        .glow-blob-1 { width: 500px; height: 500px; background: rgba(124,58,237,.15); top: -120px; right: -100px; }
+        .glow-blob-2 { width: 400px; height: 400px; background: rgba(16,185,129,.08); bottom: -80px; left: -60px; }
+
+        /* ── layout ── */
+        .page { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+        /* ── top nav ── */
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 48px;
+        }
+        .back-link {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--text-2); text-decoration: none; font-size: 14px;
+            font-weight: 500; transition: color .2s;
+        }
+        .back-link:hover { color: var(--text-1); }
+        .back-link svg { width: 16px; height: 16px; }
+
+        .ai-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: linear-gradient(135deg, #7c3aed22, #7c3aed44);
+            border: 1px solid #7c3aed55;
+            border-radius: 999px; padding: 6px 14px;
+            font-size: 12px; font-weight: 600; letter-spacing: .08em;
+            color: #a78bfa; text-transform: uppercase;
+        }
+        .ai-badge .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #a78bfa; animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+        /* ── hero headline ── */
+        .hero { margin-bottom: 40px; }
+        .hero h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(28px, 5vw, 48px);
+            font-weight: 800; letter-spacing: -.02em; line-height: 1.1;
+        }
+        .hero h1 span { color: #a78bfa; }
+        .hero p { color: var(--text-2); margin-top: 12px; font-size: 16px; max-width: 520px; }
+
+        /* ── tabs ── */
+        .tabs {
+            display: flex; gap: 4px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px; padding: 6px;
+            margin-bottom: 36px; width: fit-content;
+        }
+        .tab-btn {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 22px; border-radius: 10px; border: none;
+            font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+            cursor: pointer; transition: all .25s; color: var(--text-3);
+            background: transparent;
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
+            color: white;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        .tab-btn:hover:not(.active) { color: var(--text-1); background: var(--bg-glass); }
+
+        /* ── error state ── */
+        .error-card {
+            background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2);
+            border-radius: 16px; padding: 28px 32px;
+            display: flex; align-items: flex-start; gap: 16px;
+        }
+        .error-card .icon { font-size: 28px; flex-shrink: 0; }
+        .error-card p { color: #fca5a5; font-size: 15px; line-height: 1.6; }
+
+        /* ─────────────────────────────────────────
+           INSIGHTS LAYOUT
+        ───────────────────────────────────────── */
+        .insights-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .insight-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px; padding: 28px 28px 24px;
+            position: relative; overflow: hidden;
+            animation: fadeUp .4s ease both;
+        }
+        .insight-card:nth-child(1) { animation-delay: .05s; }
+        .insight-card:nth-child(2) { animation-delay: .10s; }
+        .insight-card:nth-child(3) { animation-delay: .15s; }
+        .insight-card:nth-child(4) { animation-delay: .20s; }
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(16px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+
+        .insight-card::after {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, #7c3aed, #a78bfa, transparent);
+            border-radius: 20px 20px 0 0;
+        }
+        .insight-card:nth-child(2)::after { background: linear-gradient(90deg, #f59e0b, #fbbf24, transparent); }
+        .insight-card:nth-child(3)::after { background: linear-gradient(90deg, #06b6d4, #22d3ee, transparent); }
+        .insight-card:nth-child(4)::after { background: linear-gradient(90deg, #10b981, #34d399, transparent); }
+
+        .insight-label {
+            font-size: 10px; font-weight: 700; letter-spacing: .12em;
+            text-transform: uppercase; color: var(--text-3); margin-bottom: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .insight-label .label-icon { font-size: 16px; }
+        .insight-body { font-size: 14.5px; color: var(--text-2); line-height: 1.75; }
+
+        /* wide card spans both columns */
+        .insight-card.full-width { grid-column: 1 / -1; }
+
+        /* ─────────────────────────────────────────
+           BUDGET LAYOUT
+        ───────────────────────────────────────── */
+        .budget-header {
+            background: linear-gradient(135deg, #7c3aed18, #5b21b618);
+            border: 1px solid #7c3aed33;
+            border-radius: 20px; padding: 28px 32px;
+            margin-bottom: 24px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 16px;
+            animation: fadeUp .3s ease both;
+        }
+        .budget-header-left h3 {
+            font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px;
+        }
+        .budget-header-left p { color: var(--text-2); font-size: 14px; margin-top: 4px; }
+        .budget-total {
+            text-align: right;
+        }
+        .budget-total .label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; }
+        .budget-total .amount {
+            font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800;
+            color: #a78bfa;
+        }
+
+        .budget-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px; margin-bottom: 24px;
+        }
+        .budget-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px; padding: 22px 22px 18px;
+            animation: fadeUp .4s ease both;
+        }
+        .budget-card:nth-child(1) { animation-delay:.05s }
+        .budget-card:nth-child(2) { animation-delay:.10s }
+        .budget-card:nth-child(3) { animation-delay:.15s }
+        .budget-card:nth-child(4) { animation-delay:.20s }
+        .budget-card:nth-child(5) { animation-delay:.25s }
+        .budget-card:nth-child(6) { animation-delay:.30s }
+        .budget-card:nth-child(7) { animation-delay:.35s }
+        .budget-card:nth-child(8) { animation-delay:.40s }
+
+        .budget-card-top {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .budget-cat-name { font-weight: 600; font-size: 15px; }
+        .change-pill {
+            font-size: 11px; font-weight: 700; letter-spacing: .06em;
+            padding: 4px 10px; border-radius: 999px; text-transform: uppercase;
+        }
+        .change-pill.decrease { background: rgba(16,185,129,.15); color: #34d399; }
+        .change-pill.increase { background: rgba(239,68,68,.12); color: #f87171; }
+        .change-pill.maintain { background: rgba(148,163,184,.12); color: #94a3b8; }
+
+        .budget-amounts {
+            display: flex; align-items: baseline; gap: 6px; margin-bottom: 10px;
+        }
+        .budget-suggested {
+            font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800;
+        }
+        .budget-currency { font-size: 16px; color: var(--text-3); }
+        .budget-vs {
+            font-size: 12px; color: var(--text-3);
+            background: rgba(255,255,255,.05);
+            border-radius: 6px; padding: 3px 8px;
+        }
+
+        /* progress bar */
+        .budget-bar-wrap {
+            background: rgba(255,255,255,.06); border-radius: 999px;
+            height: 4px; margin-bottom: 12px; overflow: hidden;
+        }
+        .budget-bar {
+            height: 100%; border-radius: 999px;
+            transition: width .8s cubic-bezier(.4,0,.2,1);
+        }
+
+        .budget-reason { font-size: 12.5px; color: var(--text-3); line-height: 1.5; }
+
+        /* advice card */
+        .advice-card {
+            background: linear-gradient(135deg, rgba(16,185,129,.1), rgba(16,185,129,.05));
+            border: 1px solid rgba(16,185,129,.2);
+            border-radius: 16px; padding: 24px 28px;
+            animation: fadeUp .4s .45s ease both;
+        }
+        .advice-label {
+            font-size: 11px; font-weight: 700; letter-spacing: .1em;
+            text-transform: uppercase; color: #34d399; margin-bottom: 10px;
+        }
+        .advice-card p { color: var(--text-2); font-size: 14.5px; line-height: 1.7; }
+
+        /* ── loading overlay ── */
+        #loading-overlay {
+            position: fixed; inset: 0; z-index: 999;
+            background: rgba(8,11,20,.85); backdrop-filter: blur(6px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 20px;
+        }
+        #loading-overlay.hidden { display: none; }
+        .spinner-ring {
+            width: 60px; height: 60px;
+            border: 3px solid rgba(124,58,237,.2);
+            border-top-color: #a78bfa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loading-overlay p { color: #a78bfa; font-weight: 500; font-size: 15px; }
+
+        /* ── responsive ── */
+        @media (max-width: 680px) {
+            .insights-grid { grid-template-columns: 1fr; }
+            .insight-card.full-width { grid-column: 1; }
+            .tabs { width: 100%; }
+            .tab-btn { flex: 1; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ambient blobs -->
+<div class="glow-blob glow-blob-1"></div>
+<div class="glow-blob glow-blob-2"></div>
+
+<!-- loading overlay -->
+<div id="loading-overlay" class="hidden">
+    <div class="spinner-ring"></div>
+    <p id="loading-text">Analysing your expenses with AI…</p>
+</div>
+
+<div class="page">
+
+    <!-- topbar -->
+    <div class="topbar">
+        <a href="/" class="back-link">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            Back to Dashboard
+        </a>
+        <div class="ai-badge">
+            <span class="dot"></span>
+            Claude AI Powered
+        </div>
+    </div>
+
+    <!-- hero -->
+    <div class="hero">
+        <h1>Your <span>AI Finance</span><br>Intelligence</h1>
+        <p>Claude analyses your real spending data to surface patterns and suggest smarter budgets — personalised to you.</p>
+    </div>
+
+    <!-- tabs -->
+    <div class="tabs">
+        <button class="tab-btn {% if active_tab == 'insights' %}active{% endif %}"
+                onclick="navigate('/ai/insights')" id="tab-insights">
+            🔍 Spending Insights
+        </button>
+        <button class="tab-btn {% if active_tab == 'budgets' %}active{% endif %}"
+                onclick="navigate('/ai/budgets')" id="tab-budgets">
+            🎯 Budget Recommendations
+        </button>
+    </div>
+
+    <!-- ─── ERROR ─── -->
+    {% if error %}
+    <div class="error-card">
+        <div class="icon">⚠️</div>
+        <p>{{ error }}</p>
+    </div>
+
+    <!-- ─── INSIGHTS ─── -->
+    {% elif active_tab == 'insights' and insights %}
+    <div class="insights-grid">
+
+        {% if insights.get('OVERVIEW') %}
+        <div class="insight-card full-width">
+            <div class="insight-label"><span class="label-icon">📊</span>Overview</div>
+            <div class="insight-body">{{ insights['OVERVIEW'] }}</div>
+        </div>
+        {% endif %}
+
+        {% if insights.get('TOP SPENDING AREAS') %}
+        <div class="insight-card">
+            <div class="insight-label"><span class="label-icon">🏆</span>Top Spending Areas</div>
+            <div class="insight-body">{{ insights['TOP SPENDING AREAS'] }}</div>
+        </div>
+        {% endif %}
+
+        {% if insights.get('NOTABLE PATTERNS') %}
+        <div class="insight-card">
+            <div class="insight-label"><span class="label-icon">📈</span>Notable Patterns</div>
+            <div class="insight-body">{{ insights['NOTABLE PATTERNS'] }}</div>
+        </div>
+        {% endif %}
+
+        {% if insights.get('ACTIONABLE TIPS') %}
+        <div class="insight-card full-width">
+            <div class="insight-label"><span class="label-icon">💡</span>Actionable Tips</div>
+            <div class="insight-body">{{ insights['ACTIONABLE TIPS'] }}</div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- ─── BUDGETS ─── -->
+    {% elif active_tab == 'budgets' and budgets %}
+
+    <div class="budget-header">
+        <div class="budget-header-left">
+            <h3>Your Personalised Monthly Budget</h3>
+            <p>{{ budgets.monthly_income_assumption }}</p>
+        </div>
+        <div class="budget-total">
+            <div class="label">Suggested Total</div>
+            <div class="amount">₹{{ "{:,.0f}".format(budgets.total_suggested_budget) }}</div>
+        </div>
+    </div>
+
+    <div class="budget-cards">
+        {% for cat in budgets.categories %}
+        {% set pct = [(cat.suggested / cat.current_avg * 100) if cat.current_avg > 0 else 100, 100] | min %}
+        <div class="budget-card">
+            <div class="budget-card-top">
+                <span class="budget-cat-name">{{ cat.name }}</span>
+                <span class="change-pill {{ cat.change }}">
+                    {% if cat.change == 'decrease' %}↓ Reduce
+                    {% elif cat.change == 'increase' %}↑ Allow more
+                    {% else %}→ Maintain{% endif %}
+                </span>
+            </div>
+            <div class="budget-amounts">
+                <span class="budget-currency">₹</span>
+                <span class="budget-suggested">{{ "{:,.0f}".format(cat.suggested) }}</span>
+                <span class="budget-vs">was ₹{{ "{:,.0f}".format(cat.current_avg) }}/mo</span>
+            </div>
+            <div class="budget-bar-wrap">
+                <div class="budget-bar" style="
+                    width: {{ pct }}%;
+                    background: {% if cat.change == 'decrease' %}linear-gradient(90deg,#10b981,#34d399){% elif cat.change == 'increase' %}linear-gradient(90deg,#f59e0b,#fbbf24){% else %}linear-gradient(90deg,#7c3aed,#a78bfa){% endif %};
+                "></div>
+            </div>
+            <div class="budget-reason">{{ cat.reason }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="advice-card">
+        <div class="advice-label">💬 Overall Advice</div>
+        <p>{{ budgets.overall_advice }}</p>
+    </div>
+
+    {% endif %}
+
+</div>
+
+<script>
+    function navigate(path) {
+        const isInsights = path.includes('insights');
+        document.getElementById('loading-text').textContent =
+            isInsights ? 'Analysing your expenses with AI…'
+                       : 'Generating budget recommendations…';
+        document.getElementById('loading-overlay').classList.remove('hidden');
+        window.location.href = path;
+    }
+</script>
+</body>
+</html>

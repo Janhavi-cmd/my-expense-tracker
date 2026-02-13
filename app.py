@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, make_response, flash
+from flask import Flask, render_template, request, redirect, session, make_response, flash, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Expense
 from datetime import datetime
@@ -6,6 +6,8 @@ from sqlalchemy import extract, func
 from fpdf import FPDF
 from functools import wraps
 import os
+import json
+import urllib.request
 
 app = Flask(__name__)
 
@@ -291,6 +293,214 @@ def admin_panel():
                          expenses=expenses,
                          total_users=total_users,
                          total_expenses=total_expenses)
+
+
+# ============================================================
+# AI FEATURES - Spending Insights & Budget Recommendations
+# ============================================================
+
+ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
+
+def call_claude(prompt, system_prompt, max_tokens=1024):
+    """Call Claude API via urllib (no extra deps needed)."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return None, "ANTHROPIC_API_KEY environment variable not set."
+
+    payload = json.dumps({
+        "model": "claude-sonnet-4-5-20250929",
+        "max_tokens": max_tokens,
+        "system": system_prompt,
+        "messages": [{"role": "user", "content": prompt}]
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        ANTHROPIC_API_URL,
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01"
+        },
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data["content"][0]["text"], None
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        return None, f"API error {e.code}: {body}"
+    except Exception as e:
+        return None, str(e)
+
+
+def build_expense_summary(expenses):
+    """Build a structured summary of expenses for the AI prompt."""
+    if not expenses:
+        return None
+
+    category_totals = {}
+    monthly_totals = {}
+    for e in expenses:
+        category_totals[e.category] = category_totals.get(e.category, 0) + e.amount
+        month_key = e.date.strftime("%Y-%m")
+        monthly_totals[month_key] = monthly_totals.get(month_key, 0) + e.amount
+
+    grand_total = sum(category_totals.values())
+    sorted_cats = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
+    sorted_months = sorted(monthly_totals.items())
+
+    lines = [f"Total spending across all time: ₹{grand_total:.2f}",
+             f"Number of expenses: {len(expenses)}",
+             "",
+             "Spending by category:"]
+    for cat, amt in sorted_cats:
+        pct = (amt / grand_total * 100) if grand_total else 0
+        lines.append(f"  - {cat}: ₹{amt:.2f} ({pct:.1f}%)")
+
+    if sorted_months:
+        lines.append("")
+        lines.append("Monthly totals (recent 6 months):")
+        for m, amt in sorted_months[-6:]:
+            lines.append(f"  - {m}: ₹{amt:.2f}")
+
+    return "\n".join(lines)
+
+
+@app.route('/ai/insights', methods=['GET'])
+@login_required
+def ai_insights():
+    """AI Spending Insights – analyses the user's full expense history."""
+    expenses = Expense.query.filter_by(
+        user_id=session['user_id'],
+        status="active"
+    ).order_by(Expense.date.asc()).all()
+
+    summary = build_expense_summary(expenses)
+    if not summary:
+        return render_template('ai_features.html',
+                               active_tab='insights',
+                               error="No expenses found. Add some expenses first!",
+                               insights=None,
+                               budgets=None)
+
+    system_prompt = (
+        "You are a personal finance analyst helping users understand their spending patterns. "
+        "Give clear, actionable, empathetic insights. Use Indian Rupee (₹) formatting. "
+        "Structure your response with these exact sections using plain text headers (no markdown bold/stars):\n"
+        "OVERVIEW\n"
+        "TOP SPENDING AREAS\n"
+        "NOTABLE PATTERNS\n"
+        "ACTIONABLE TIPS\n"
+        "Keep each section concise (2-4 sentences). Be specific with numbers from the data."
+    )
+
+    user_prompt = (
+        f"Here is my expense data:\n\n{summary}\n\n"
+        "Please analyse my spending and provide personalized insights."
+    )
+
+    result, error = call_claude(user_prompt, system_prompt, max_tokens=900)
+
+    if error:
+        return render_template('ai_features.html',
+                               active_tab='insights',
+                               error=f"AI service error: {error}",
+                               insights=None,
+                               budgets=None)
+
+    # Parse sections
+    sections = {}
+    current = None
+    SECTION_KEYS = ["OVERVIEW", "TOP SPENDING AREAS", "NOTABLE PATTERNS", "ACTIONABLE TIPS"]
+    lines = result.strip().splitlines()
+    buf = []
+    for line in lines:
+        stripped = line.strip()
+        matched = next((k for k in SECTION_KEYS if stripped.upper().startswith(k)), None)
+        if matched:
+            if current and buf:
+                sections[current] = " ".join(buf).strip()
+            current = matched
+            buf = []
+        elif current:
+            if stripped:
+                buf.append(stripped)
+    if current and buf:
+        sections[current] = " ".join(buf).strip()
+
+    return render_template('ai_features.html',
+                           active_tab='insights',
+                           insights=sections,
+                           raw_insights=result,
+                           budgets=None,
+                           error=None)
+
+
+@app.route('/ai/budgets', methods=['GET'])
+@login_required
+def ai_budgets():
+    """AI Budget Recommendations – suggests per-category monthly budgets."""
+    expenses = Expense.query.filter_by(
+        user_id=session['user_id'],
+        status="active"
+    ).order_by(Expense.date.asc()).all()
+
+    summary = build_expense_summary(expenses)
+    if not summary:
+        return render_template('ai_features.html',
+                               active_tab='budgets',
+                               error="No expenses found. Add some expenses first!",
+                               insights=None,
+                               budgets=None)
+
+    system_prompt = (
+        "You are a personal finance coach. Suggest realistic monthly budgets based on actual spending. "
+        "Respond ONLY with a valid JSON object – no markdown, no extra text. "
+        "Format: {\"monthly_income_assumption\": \"string\", \"total_suggested_budget\": number, "
+        "\"categories\": [{\"name\": \"string\", \"current_avg\": number, \"suggested\": number, "
+        "\"change\": \"increase|decrease|maintain\", \"reason\": \"string\"}], "
+        "\"overall_advice\": \"string\"}"
+    )
+
+    user_prompt = (
+        f"Here is my expense data:\n\n{summary}\n\n"
+        "Based on this spending history, suggest a realistic monthly budget for each category. "
+        "Return ONLY valid JSON as specified."
+    )
+
+    result, error = call_claude(user_prompt, system_prompt, max_tokens=900)
+
+    if error:
+        return render_template('ai_features.html',
+                               active_tab='budgets',
+                               error=f"AI service error: {error}",
+                               insights=None,
+                               budgets=None)
+
+    # Strip any accidental markdown fences
+    cleaned = result.strip()
+    if cleaned.startswith("```"):
+        cleaned = "\n".join(cleaned.splitlines()[1:])
+    if cleaned.endswith("```"):
+        cleaned = "\n".join(cleaned.splitlines()[:-1])
+    cleaned = cleaned.strip()
+
+    try:
+        budgets = json.loads(cleaned)
+    except json.JSONDecodeError:
+        return render_template('ai_features.html',
+                               active_tab='budgets',
+                               error="Could not parse AI budget response. Please try again.",
+                               insights=None,
+                               budgets=None)
+
+    return render_template('ai_features.html',
+                           active_tab='budgets',
+                           budgets=budgets,
+                           insights=None,
+                           error=None)
 
 
 if __name__ == '__main__':
